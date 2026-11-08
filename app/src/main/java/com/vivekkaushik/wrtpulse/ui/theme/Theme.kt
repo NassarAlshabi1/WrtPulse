@@ -4,30 +4,84 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Shapes
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 
 // WrtPulse is dark-only by design.
+//
+// The scheme fills every Material 3 role from the app's palette, so the M3 components the
+// screens are built from — cards, buttons, switches, chips, navigation and app bars, text
+// fields — pick up the WrtPulse look from the theme instead of per-use overrides.
 private val DarkColorScheme = darkColorScheme(
     primary = Wrt.Accent,
     onPrimary = Wrt.OnAccent,
+    primaryContainer = Wrt.BgPendingBar,
+    onPrimaryContainer = Wrt.Accent,
+    inversePrimary = Wrt.Accent,
+
     secondary = Wrt.TextTertiary,
+    onSecondary = Wrt.BgScreen,
+    secondaryContainer = Wrt.BgDeep,
+    onSecondaryContainer = Wrt.TextPrimary,
+
+    tertiary = Wrt.Green,
+    onTertiary = Wrt.OnAccent,
+    tertiaryContainer = Wrt.BgPendingBar,
+    onTertiaryContainer = Wrt.Green,
+
     background = Wrt.BgScreen,
     onBackground = Wrt.TextPrimary,
     surface = Wrt.BgCard,
     onSurface = Wrt.TextPrimary,
     surfaceVariant = Wrt.BgDeep,
     onSurfaceVariant = Wrt.TextSecondary,
-    outline = Wrt.BorderCard,
+    surfaceTint = Wrt.Accent,
+
+    // The design's card/dim/sheet stack becomes the M3 surface-container ladder, so elevated
+    // M3 surfaces (menus, dialogs, bars) keep stepping through the same greens.
+    surfaceDim = Wrt.BgDeep,
+    surfaceBright = Wrt.BgCardDim,
+    surfaceContainerLowest = Wrt.BgCode,
+    surfaceContainerLow = Wrt.BgCardDim,
+    surfaceContainer = Wrt.BgCard,
+    surfaceContainerHigh = Wrt.BgSheet,
+    surfaceContainerHighest = Wrt.BgSheet,
+
+    inverseSurface = Wrt.TextPrimary,
+    inverseOnSurface = Wrt.BgScreen,
+
     error = Wrt.Red,
+    onError = Wrt.OnRed,
+    errorContainer = Wrt.ErrContainer,
+    onErrorContainer = Wrt.OnErrContainer,
+
+    outline = Wrt.BorderCard,
+    outlineVariant = Wrt.BorderHair,
+    scrim = Color(0xB3040706),
+)
+
+/**
+ * The Material 3 shape scale, stepped with the radii the screens were drawn against — the
+ * 4dp tags, 5dp chips, 10dp inputs, 12dp buttons and 13dp cards — so any component that
+ * reads a default shape lands on a corner from the design.
+ */
+private val WrtShapes = Shapes(
+    extraSmall = RoundedCornerShape(4.dp),
+    small = RoundedCornerShape(5.dp),
+    medium = RoundedCornerShape(10.dp),
+    large = RoundedCornerShape(12.dp),
+    extraLarge = RoundedCornerShape(13.dp),
 )
 
 /**
@@ -112,6 +166,7 @@ fun WrtPulseTheme(content: @Composable () -> Unit) {
         MaterialTheme(
             colorScheme = DarkColorScheme,
             typography = Typography,
+            shapes = WrtShapes,
         ) {
             // Painted in the screens' own background so a column's margins are the same dark as
             // the page beside them, never the window's bare black.

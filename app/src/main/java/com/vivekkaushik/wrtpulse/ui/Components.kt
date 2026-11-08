@@ -26,6 +26,7 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -38,12 +39,30 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip as MaterialFilterChip
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
@@ -89,6 +108,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Constraints
@@ -149,10 +169,16 @@ fun WCard(
     radius: Dp = 13.dp,
     body: @Composable () -> Unit,
 ) {
-    Box(
-        modifier
-            .border(1.dp, border, RoundedCornerShape(radius))
-            .background(background, RoundedCornerShape(radius))
+    // A Material 3 Card carrying the design's flat outlined look: the background and hairline
+    // border come through as the card's container colour and border stroke.
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(radius),
+        colors = CardDefaults.cardColors(
+            containerColor = background,
+            contentColor = Wrt.TextPrimary,
+        ),
+        border = BorderStroke(1.dp, border),
     ) { body() }
 }
 
@@ -181,25 +207,30 @@ fun StatusDot(color: Color, size: Dp = 8.dp, pulse: Boolean = false, periodMs: I
     }
 }
 
-/** 34x19 toggle from the design. */
+/** 34x19 toggle from the design — a Material 3 switch drawn in that slot, in those colours. */
 @Composable
 fun WToggle(checked: Boolean, onToggle: (() -> Unit)? = null) {
-    val track = if (checked) Wrt.Accent.copy(alpha = 0.16f) else Wrt.TrackOff
-    val borderC = if (checked) Wrt.Accent.copy(alpha = 0.5f) else Wrt.TrackOffBorder
-    val knob = if (checked) Wrt.Accent else Wrt.KnobOff
+    // The M3 switch draws at 52x32; scaled to 0.62 it lands on the design's 34x19 slot. The
+    // colours are the design's — translucent accent track, accent knob — so the rows it sits
+    // in read as they were drawn, while the thumb gains the M3 spring motion.
     Box(
-        Modifier
-            .size(34.dp, 19.dp)
-            .border(1.dp, borderC, RoundedCornerShape(10.dp))
-            .background(track, RoundedCornerShape(10.dp))
-            .let { if (onToggle != null) it.clickable { onToggle() } else it }
+        Modifier.size(34.dp, 19.dp),
+        contentAlignment = Alignment.Center,
     ) {
-        Box(
-            Modifier
-                .align(if (checked) Alignment.CenterEnd else Alignment.CenterStart)
-                .padding(2.dp)
-                .size(13.dp)
-                .background(knob, CircleShape)
+        Switch(
+            checked = checked,
+            onCheckedChange = onToggle?.let { cb -> { cb() } },
+            modifier = Modifier
+                .requiredSize(52.dp, 32.dp)
+                .scale(0.62f),
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = Wrt.Accent,
+                checkedTrackColor = Wrt.Accent.copy(alpha = 0.16f),
+                checkedBorderColor = Wrt.Accent.copy(alpha = 0.5f),
+                uncheckedThumbColor = Wrt.KnobOff,
+                uncheckedTrackColor = Wrt.TrackOff,
+                uncheckedBorderColor = Wrt.TrackOffBorder,
+            ),
         )
     }
 }
@@ -216,19 +247,36 @@ fun FilterChip(
     selectedColor: Color = Wrt.Accent,
     onClick: (() -> Unit)? = null,
 ) {
+    // A Material 3 FilterChip in the design's pill shape and colours: the accent fill when
+    // selected, the hairline outline when not. The label keeps the size and face it was
+    // drawn with (sans, or the mono chips the wireless screens use).
     val style = if (mono) mono(size, if (selected) 600 else 500) else sans(size, if (selected) 600 else 500)
-    val shape = RoundedCornerShape(50)
-    Box(
-        Modifier
-            .let {
-                if (selected) it.background(selectedColor, shape)
-                else it.border(1.dp, Wrt.BorderCard, shape)
-            }
-            .let { if (onClick != null) it.clickable(onClick = onClick) else it }
-            .padding(horizontal = padH, vertical = padV)
-    ) {
-        Text(text, style = style.copy(color = if (selected) Wrt.OnAccent else Wrt.TextSecondary))
-    }
+    val labelColor = if (selected) Wrt.OnAccent else Wrt.TextSecondary
+    MaterialFilterChip(
+        selected = selected,
+        onClick = onClick ?: {},
+        enabled = onClick != null,
+        shape = RoundedCornerShape(50),
+        colors = FilterChipDefaults.filterChipColors(
+            containerColor = Color.Transparent,
+            labelColor = Wrt.TextSecondary,
+            selectedContainerColor = selectedColor,
+            selectedLabelColor = Wrt.OnAccent,
+            disabledContainerColor = Color.Transparent,
+            disabledLabelColor = Wrt.TextSecondary,
+            disabledSelectedContainerColor = selectedColor,
+        ),
+        border = FilterChipDefaults.filterChipBorder(
+            enabled = true,
+            selected = selected,
+            borderColor = Wrt.BorderCard,
+            selectedBorderColor = Color.Transparent,
+            disabledBorderColor = Wrt.BorderCard,
+        ),
+        label = {
+            Text(text, style = style.copy(color = labelColor))
+        },
+    )
 }
 
 /**
@@ -245,27 +293,35 @@ fun InfoChip(
     border: Color = Wrt.BorderInput,
     dot: Color? = null,
 ) {
-    Row(
-        Modifier
-            .border(1.dp, border, RoundedCornerShape(5.dp))
-            .padding(horizontal = 7.dp, vertical = 3.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(5.dp),
+    Surface(
+        shape = RoundedCornerShape(5.dp),
+        color = Color.Transparent,
+        border = BorderStroke(1.dp, border),
     ) {
-        if (dot != null) StatusDot(dot, 5.dp)
-        Text(text, style = mono(10f, 500, color), maxLines = 1)
+        Row(
+            Modifier.padding(horizontal = 7.dp, vertical = 3.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(5.dp),
+        ) {
+            if (dot != null) StatusDot(dot, 5.dp)
+            Text(text, style = mono(10f, 500, color), maxLines = 1)
+        }
     }
 }
 
 /** Tiny bordered mono tag, e.g. "HOME", "WPA3-SAE", "Casa · 5G". */
 @Composable
 fun MonoTag(text: String, color: Color = Wrt.TextTertiary, border: Color = Wrt.BorderInput, size: Float = 9f) {
-    Box(
-        Modifier
-            .border(1.dp, border, RoundedCornerShape(4.dp))
-            .padding(horizontal = 5.dp, vertical = 2.dp)
+    Surface(
+        shape = RoundedCornerShape(4.dp),
+        color = Color.Transparent,
+        border = BorderStroke(1.dp, border),
     ) {
-        Text(text, style = mono(size, 600, color, letterSpacing = 0.08.em))
+        Text(
+            text,
+            style = mono(size, 600, color, letterSpacing = 0.08.em),
+            modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp),
+        )
     }
 }
 
@@ -418,13 +474,17 @@ private fun ThroughputChartScaled(down: List<Float>, up: List<Float>, modifier: 
 
 @Composable
 fun PrimaryButton(text: String, modifier: Modifier = Modifier, color: Color = Wrt.Accent, textColor: Color = Wrt.OnAccent, onClick: () -> Unit) {
-    Box(
-        modifier
+    // A filled Material 3 Button in the design's 48dp height, 12dp corners and accent fill.
+    Button(
+        onClick = onClick,
+        modifier = modifier
             .fillMaxWidth()
-            .height(48.dp)
-            .background(color, RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center,
+            .height(48.dp),
+        shape = RoundedCornerShape(12.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = color,
+            contentColor = textColor,
+        ),
     ) {
         Text(text, style = sans(14.5f, 650, textColor))
     }
@@ -438,13 +498,19 @@ fun GhostButton(
     textColor: Color = Wrt.TextSecondary,
     onClick: () -> Unit,
 ) {
-    Box(
-        modifier
+    // The ghost button as a Material 3 OutlinedButton: same 44dp height and 12dp corners,
+    // its hairline border and quiet label colour carried into the component's own tokens.
+    OutlinedButton(
+        onClick = onClick,
+        modifier = modifier
             .fillMaxWidth()
-            .height(44.dp)
-            .border(1.dp, border, RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick),
-        contentAlignment = Alignment.Center,
+            .height(44.dp),
+        shape = RoundedCornerShape(12.dp),
+        colors = ButtonDefaults.outlinedButtonColors(
+            containerColor = Color.Transparent,
+            contentColor = textColor,
+        ),
+        border = BorderStroke(1.dp, border),
     ) {
         Text(text, style = sans(13.5f, 600, textColor))
     }
@@ -463,6 +529,7 @@ const val SLOW_POLL_MS = 250
  */
 val LocalLiveTelemetry = compositionLocalOf<Telemetry?> { null }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ConnectionTopBar(
     routerName: String,
@@ -492,52 +559,69 @@ fun ConnectionTopBar(
     val lost = lostAt != null || redialing
     var now by remember { mutableStateOf(System.currentTimeMillis()) }
     LaunchedEffect(lost) { while (lost) { now = System.currentTimeMillis(); delay(1_000) } }
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .height(52.dp)
-            .background(Wrt.BgBar)
-            .padding(horizontal = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        Row(
-            Modifier.let { if (onRouterTap != null) it.clickable(onClick = onRouterTap) else it },
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            StatusDot(if (lost) Wrt.Amber else Wrt.Accent, 8.dp, pulse = pulse && !lost)
-            Text(routerName, style = sans(14.5f, 650))
-            Icon(
-                if (chevronUp) WrtIcons.ChevronUp else WrtIcons.ChevronDown,
-                null,
-                Modifier.size(13.dp),
-                tint = Wrt.TextDim,
-            )
-        }
-        Box(Modifier.weight(1f))
-        Box(
-            Modifier
-                .border(1.dp, if (lost) Wrt.Amber.copy(alpha = 0.45f) else Wrt.BorderCard, RoundedCornerShape(6.dp))
-                .padding(horizontal = 8.dp, vertical = 3.dp)
-        ) {
-            // A figure from before the link died would be a lie; say what is actually known.
-            Text(
-                if (lost) "no reply" else "$latencyMs ms",
-                style = mono(10.5f, 500, if (lost) Wrt.Amber else Wrt.TextTertiary),
-            )
-        }
-        pollMs?.takeIf { it >= SLOW_POLL_MS }?.let {
-            Box(
-                Modifier
-                    .border(1.dp, Wrt.Amber.copy(alpha = 0.45f), RoundedCornerShape(6.dp))
-                    .padding(horizontal = 8.dp, vertical = 3.dp)
+
+    // The design's 52dp connected bar as a Material 3 TopAppBar: the pulsing router row rides
+    // in the title slot, the latency and poll chips in the actions. Insets are zeroed because
+    // the app pads the system bars once, at its root.
+    TopAppBar(
+        title = {
+            Row(
+                Modifier.let { if (onRouterTap != null) it.clickable(onClick = onRouterTap) else it },
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                Text("poll $it ms", style = mono(10.5f, 500, Wrt.Amber))
+                StatusDot(if (lost) Wrt.Amber else Wrt.Accent, 8.dp, pulse = pulse && !lost)
+                Text(
+                    routerName,
+                    style = sans(14.5f, 650),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Icon(
+                    if (chevronUp) WrtIcons.ChevronUp else WrtIcons.ChevronDown,
+                    null,
+                    Modifier.size(13.dp),
+                    tint = Wrt.TextDim,
+                )
             }
-        }
-        trailing?.invoke()
-    }
+        },
+        actions = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Box(
+                    Modifier
+                        .border(1.dp, if (lost) Wrt.Amber.copy(alpha = 0.45f) else Wrt.BorderCard, RoundedCornerShape(6.dp))
+                        .padding(horizontal = 8.dp, vertical = 3.dp)
+                ) {
+                    // A figure from before the link died would be a lie; say what is actually known.
+                    Text(
+                        if (lost) "no reply" else "$latencyMs ms",
+                        style = mono(10.5f, 500, if (lost) Wrt.Amber else Wrt.TextTertiary),
+                    )
+                }
+                pollMs?.takeIf { it >= SLOW_POLL_MS }?.let {
+                    Box(
+                        Modifier
+                            .border(1.dp, Wrt.Amber.copy(alpha = 0.45f), RoundedCornerShape(6.dp))
+                            .padding(horizontal = 8.dp, vertical = 3.dp)
+                    ) {
+                        Text("poll $it ms", style = mono(10.5f, 500, Wrt.Amber))
+                    }
+                }
+                trailing?.invoke()
+            }
+        },
+        expandedHeight = 52.dp,
+        windowInsets = WindowInsets(0.dp, 0.dp, 0.dp, 0.dp),
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = Wrt.BgBar,
+            scrolledContainerColor = Wrt.BgBar,
+            titleContentColor = Wrt.TextPrimary,
+            actionIconContentColor = Wrt.TextTertiary,
+        ),
+    )
     HorizontalHairline()
     if (lost) {
         // The strip stays until a reply lands again. Amber, not red: the poll keeps trying
@@ -653,7 +737,11 @@ fun SwipeToReveal(
 
 @Composable
 fun HorizontalHairline(color: Color = Wrt.BorderHair) {
-    Box(Modifier.fillMaxWidth().height(1.dp).background(color))
+    HorizontalDivider(
+        modifier = Modifier.fillMaxWidth(),
+        thickness = 1.dp,
+        color = color,
+    )
 }
 
 enum class MainTab(val label: String) {
@@ -673,23 +761,37 @@ val WrtBottomNavHeight = 63.dp
 
 @Composable
 fun WrtBottomNav(current: MainTab, onSelect: (MainTab) -> Unit) {
+    // The design's tab bar as a Material 3 NavigationBar: same bar background and hairline,
+    // same 21dp glyphs and 9.5sp labels, with the M3 indicator pill tinted at the accent's
+    // 16% — the fill the selected tab already carried. Insets are zeroed: the app pads the
+    // system bars once, at its root, and the bar keeps its designed 62dp row.
     Column(Modifier.background(Wrt.BgBar)) {
         HorizontalHairline()
-        Row(Modifier.fillMaxWidth().height(WrtBottomNavHeight - 1.dp)) {
+        NavigationBar(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(WrtBottomNavHeight - 1.dp),
+            containerColor = Wrt.BgBar,
+            contentColor = Wrt.TextDim,
+            tonalElevation = 0.dp,
+            windowInsets = WindowInsets(0.dp, 0.dp, 0.dp, 0.dp),
+        ) {
             MainTab.entries.forEach { tab ->
                 val active = tab == current
                 val c = if (active) Wrt.Accent else Wrt.TextDim
-                Column(
-                    Modifier
-                        .weight(1f)
-                        .clickable { onSelect(tab) }
-                        .padding(top = 9.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(3.dp),
-                ) {
-                    Icon(tabIcon(tab), tab.label, Modifier.size(21.dp), tint = c)
-                    Text(tab.label, style = sans(9.5f, if (active) 600 else 500, c))
-                }
+                NavigationBarItem(
+                    selected = active,
+                    onClick = { onSelect(tab) },
+                    icon = { Icon(tabIcon(tab), tab.label, Modifier.size(21.dp), tint = c) },
+                    label = { Text(tab.label, style = sans(9.5f, if (active) 600 else 500, c)) },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = Wrt.Accent,
+                        selectedTextColor = Wrt.Accent,
+                        unselectedIconColor = Wrt.TextDim,
+                        unselectedTextColor = Wrt.TextDim,
+                        indicatorColor = Wrt.Accent.copy(alpha = 0.16f),
+                    ),
+                )
             }
         }
     }

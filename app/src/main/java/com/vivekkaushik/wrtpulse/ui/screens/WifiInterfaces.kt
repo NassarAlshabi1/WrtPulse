@@ -30,6 +30,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -557,26 +559,36 @@ private fun ScanPulse(band: String) {
 // Shared form furniture
 // ---------------------------------------------------------------------------
 
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun FormTopBar(title: String, onBack: () -> Unit, trailing: @Composable () -> Unit = {}) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .height(52.dp)
-            .background(Wrt.BgBar)
-            .padding(horizontal = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Icon(
-            WrtIcons.ChevronLeft,
-            "back",
-            Modifier.size(18.dp).clickable(onClick = onBack),
-            tint = Wrt.TextPrimary,
-        )
-        Text(title, style = sans(15f, 650), maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-        trailing()
-    }
+    // The full-screen editors' bar as a Material 3 TopAppBar: back chevron in the navigation
+    // slot, the title beside it, the editor's own trailing slot in the actions. Insets stay
+    // zero — the app pads the system bars once, at its root.
+    androidx.compose.material3.TopAppBar(
+        title = {
+            Text(title, style = sans(15f, 650), maxLines = 1, overflow = TextOverflow.Ellipsis)
+        },
+        navigationIcon = {
+            Icon(
+                WrtIcons.ChevronLeft,
+                "back",
+                Modifier
+                    .size(18.dp)
+                    .clickable(onClick = onBack),
+                tint = Wrt.TextPrimary,
+            )
+        },
+        actions = { trailing() },
+        expandedHeight = 52.dp,
+        windowInsets = androidx.compose.foundation.layout.WindowInsets(0.dp, 0.dp, 0.dp, 0.dp),
+        colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
+            containerColor = Wrt.BgBar,
+            scrolledContainerColor = Wrt.BgBar,
+            titleContentColor = Wrt.TextPrimary,
+            navigationIconContentColor = Wrt.TextPrimary,
+        ),
+    )
 }
 
 @Composable
@@ -595,37 +607,36 @@ fun FormTextField(
     masked: Boolean = false,
     trailing: @Composable () -> Unit = {},
 ) {
-    Row(
-        Modifier
+    // A Material 3 OutlinedTextField wearing the design: the deep input background, the
+    // hairline border the form rows were drawn with, and the accent cursor — kept at the
+    // 44dp height and 10dp corners so stacked form rows stay as dense as they were drawn.
+    OutlinedTextField(
+        value = value,
+        onValueChange = onChange,
+        modifier = Modifier
             .fillMaxWidth()
             .padding(top = 6.dp)
-            .height(44.dp)
-            .border(1.dp, Wrt.BorderInput, RoundedCornerShape(10.dp))
-            .background(Wrt.BgDeep, RoundedCornerShape(10.dp))
-            .padding(horizontal = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        Box(Modifier.weight(1f)) {
-            BasicTextField(
-                value = value,
-                onValueChange = onChange,
-                textStyle = mono(13f, 500),
-                singleLine = true,
-                cursorBrush = SolidColor(Wrt.Accent),
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = if (password) KeyboardType.Password else KeyboardType.Ascii,
-                    autoCorrectEnabled = false,
-                ),
-                visualTransformation =
-                    if (masked) PasswordVisualTransformation('\u2022') else VisualTransformation.None,
-                // An empty field measures to its text without this, leaving most of the box
-                // it sits in unable to take a tap.
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
-        trailing()
-    }
+            .height(44.dp),
+        textStyle = mono(13f, 500),
+        singleLine = true,
+        shape = RoundedCornerShape(10.dp),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedTextColor = Wrt.TextPrimary,
+            unfocusedTextColor = Wrt.TextPrimary,
+            focusedContainerColor = Wrt.BgDeep,
+            unfocusedContainerColor = Wrt.BgDeep,
+            cursorColor = Wrt.Accent,
+            focusedBorderColor = Wrt.Accent.copy(alpha = 0.5f),
+            unfocusedBorderColor = Wrt.BorderInput,
+        ),
+        keyboardOptions = KeyboardOptions(
+            keyboardType = if (password) KeyboardType.Password else KeyboardType.Ascii,
+            autoCorrectEnabled = false,
+        ),
+        visualTransformation =
+            if (masked) PasswordVisualTransformation('\u2022') else VisualTransformation.None,
+        trailingIcon = trailing,
+    )
 }
 
 @Composable

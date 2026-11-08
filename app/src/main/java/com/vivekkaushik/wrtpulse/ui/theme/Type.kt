@@ -38,7 +38,70 @@ val MonoFamily = FontFamily(
     mono(FontWeight.Bold),
 )
 
+/**
+ * The full Material 3 type scale, filled with the app's two variable fonts and the sizes the
+ * screens were drawn against, so every Material 3 component that reads a role — buttons
+ * (labelLarge), chips (labelLarge), text fields (bodyLarge), bars and dialogs — speaks the
+ * design's type instead of the platform default.
+ */
 val Typography = Typography(
+    displayLarge = TextStyle(
+        fontFamily = SansFamily,
+        fontWeight = FontWeight(650),
+        fontSize = 57.sp,
+        lineHeight = 64.sp,
+        letterSpacing = (-0.25).sp,
+    ),
+    displayMedium = TextStyle(
+        fontFamily = SansFamily,
+        fontWeight = FontWeight(650),
+        fontSize = 45.sp,
+        lineHeight = 52.sp,
+    ),
+    displaySmall = TextStyle(
+        fontFamily = SansFamily,
+        fontWeight = FontWeight(650),
+        fontSize = 36.sp,
+        lineHeight = 44.sp,
+    ),
+    headlineLarge = TextStyle(
+        fontFamily = SansFamily,
+        fontWeight = FontWeight(650),
+        fontSize = 32.sp,
+        lineHeight = 40.sp,
+    ),
+    headlineMedium = TextStyle(
+        fontFamily = SansFamily,
+        fontWeight = FontWeight(650),
+        fontSize = 28.sp,
+        lineHeight = 36.sp,
+    ),
+    headlineSmall = TextStyle(
+        fontFamily = SansFamily,
+        fontWeight = FontWeight(650),
+        fontSize = 24.sp,
+        lineHeight = 32.sp,
+        letterSpacing = (-0.24).sp,
+    ),
+    titleLarge = TextStyle(
+        fontFamily = SansFamily,
+        fontWeight = FontWeight(650),
+        fontSize = 24.sp,
+        letterSpacing = (-0.24).sp,
+    ),
+    titleMedium = TextStyle(
+        fontFamily = SansFamily,
+        fontWeight = FontWeight(650),
+        fontSize = 15.sp,
+        lineHeight = 22.sp,
+        letterSpacing = (-0.1).sp,
+    ),
+    titleSmall = TextStyle(
+        fontFamily = SansFamily,
+        fontWeight = FontWeight(650),
+        fontSize = 13.sp,
+        lineHeight = 18.sp,
+    ),
     bodyLarge = TextStyle(
         fontFamily = SansFamily,
         fontWeight = FontWeight.Normal,
@@ -51,10 +114,30 @@ val Typography = Typography(
         fontSize = 13.sp,
         lineHeight = 20.sp,
     ),
-    titleLarge = TextStyle(
+    bodySmall = TextStyle(
+        fontFamily = SansFamily,
+        fontWeight = FontWeight.Normal,
+        fontSize = 12.sp,
+        lineHeight = 16.sp,
+    ),
+    labelLarge = TextStyle(
         fontFamily = SansFamily,
         fontWeight = FontWeight(650),
-        fontSize = 24.sp,
-        letterSpacing = (-0.24).sp,
+        fontSize = 14.5.sp,
+        lineHeight = 20.sp,
+        letterSpacing = (-0.05).sp,
+    ),
+    labelMedium = TextStyle(
+        fontFamily = SansFamily,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 12.sp,
+        lineHeight = 16.sp,
+    ),
+    labelSmall = TextStyle(
+        fontFamily = SansFamily,
+        fontWeight = FontWeight(600),
+        fontSize = 10.sp,
+        lineHeight = 14.sp,
+        letterSpacing = 0.1.sp,
     ),
 )

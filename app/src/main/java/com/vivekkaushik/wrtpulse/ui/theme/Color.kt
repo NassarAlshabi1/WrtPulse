@@ -76,4 +76,9 @@ object Wrt {
     val DangerLoss = Color(0xFFD9B8B2)
     val AccentBody = Color(0xFFB8D4CB)
     val OnRed = Color(0xFF2A0C08)
+
+    // Material 3 error roles — the dark red tint the danger screens already use, carried into
+    // the theme so M3 components (snackbars, error text fields, banners) sit in the same palette.
+    val ErrContainer = Color(0xFF2A1512)
+    val OnErrContainer = Color(0xFFF2B8B2)
 }
