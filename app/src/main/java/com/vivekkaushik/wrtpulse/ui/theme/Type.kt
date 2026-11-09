@@ -23,12 +23,31 @@ private fun mono(weight: FontWeight) = Font(
     variationSettings = FontVariation.Settings(FontVariation.weight(weight.weight)),
 )
 
+/**
+ * The Arabic companion face, listed after every Latin weight: a font family tries its fonts
+ * in order for each run, so Latin text keeps Instrument Sans / Red Hat Mono exactly as drawn
+ * and any Arabic run falls through to Noto Sans Arabic — joined, shaped and hinted — instead
+ * of tofu. The weight axis is set the same way so an Arabic label set at 650 renders at 650.
+ */
+@OptIn(androidx.compose.ui.text.ExperimentalTextApi::class)
+private fun arabic(weight: FontWeight) = Font(
+    R.font.noto_sans_arabic_var,
+    weight = weight,
+    variationSettings = FontVariation.Settings(FontVariation.weight(weight.weight)),
+)
+
 val SansFamily = FontFamily(
     sans(FontWeight.Normal),
     sans(FontWeight.Medium),
     sans(FontWeight.SemiBold),
     sans(FontWeight(650)),
     sans(FontWeight.Bold),
+    // Arabic fallbacks, after every Latin weight.
+    arabic(FontWeight.Normal),
+    arabic(FontWeight.Medium),
+    arabic(FontWeight.SemiBold),
+    arabic(FontWeight(650)),
+    arabic(FontWeight.Bold),
 )
 
 val MonoFamily = FontFamily(
@@ -36,6 +55,11 @@ val MonoFamily = FontFamily(
     mono(FontWeight.Medium),
     mono(FontWeight.SemiBold),
     mono(FontWeight.Bold),
+    // Arabic fallbacks: Arabic has no monospace tradition; the sans face reads correctly here.
+    arabic(FontWeight.Normal),
+    arabic(FontWeight.Medium),
+    arabic(FontWeight.SemiBold),
+    arabic(FontWeight.Bold),
 )
 
 /**

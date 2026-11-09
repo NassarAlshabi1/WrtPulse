@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The app's own locales, for Android 13+'s per-app language setting: a phone set to Arabic
+  (or a user who picks WrtPulse › Language › العربية in system settings) opens the app in
+  Arabic without a trip through the in-app picker — and the in-app picker writes a choice
+  that outlives reinstalls, since it lives in the same preferences file. The two lists must
+  agree: a locale here the app cannot render shows English, and a locale the app renders but
+  does not list never appears in system settings.
+-->
+<locale-config xmlns:android="http://schemas.android.com/apk/res/android">
+    <locale android:name="en" />
+    <locale android:name="ar" />
+</locale-config>

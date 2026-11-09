@@ -58,9 +58,10 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
-import androidx.compose.material3.Text
+import androidx.compose.material3.Text as MaterialText
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -77,8 +78,13 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.TextUnit.Companion.Unspecified
@@ -94,6 +100,9 @@ import androidx.compose.ui.unit.sp
 import com.vivekkaushik.wrtpulse.ui.theme.MonoFamily
 import com.vivekkaushik.wrtpulse.ui.theme.SansFamily
 import com.vivekkaushik.wrtpulse.ui.theme.Wrt
+import com.vivekkaushik.wrtpulse.ui.i18n.AppLocale
+import com.vivekkaushik.wrtpulse.ui.i18n.LocalAppLanguage
+import com.vivekkaushik.wrtpulse.ui.i18n.trFor
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.draggable
@@ -111,6 +120,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.IntOffset
 import kotlin.math.roundToInt
@@ -146,6 +156,107 @@ fun mono(
     lineHeight = lineHeight,
     letterSpacing = letterSpacing,
 )
+
+// ---------- localization ----------
+
+/**
+ * The app's Text: material3's, with the string run through the language in force.
+ *
+ * The English literal at each call site is the key; the Arabic table supplies the other
+ * language, and anything it does not carry shows in English rather than blank — a missing
+ * entry can never break or blank a screen. Screens opt in simply by importing
+ * `com.vivekkaushik.wrtpulse.ui.Text` instead of material3's, which keeps every call site a
+ * plain `Text("…")` exactly as it was drawn. Reads [LocalAppLanguage] so a language change
+ * recomposes every string on screen.
+ */
+@Composable
+fun Text(
+    text: String,
+    modifier: Modifier = Modifier,
+    color: Color = Color.Unspecified,
+    fontSize: TextUnit = TextUnit.Unspecified,
+    fontStyle: FontStyle? = null,
+    fontWeight: FontWeight? = null,
+    fontFamily: FontFamily? = null,
+    letterSpacing: TextUnit = TextUnit.Unspecified,
+    textDecoration: TextDecoration? = null,
+    textAlign: TextAlign? = null,
+    lineHeight: TextUnit = TextUnit.Unspecified,
+    overflow: TextOverflow = TextOverflow.Clip,
+    softWrap: Boolean = true,
+    maxLines: Int = Int.MAX_VALUE,
+    minLines: Int = 1,
+    onTextLayout: (TextLayoutResult) -> Unit = {},
+    style: TextStyle = LocalTextStyle.current,
+) {
+    val language = LocalAppLanguage.current
+    MaterialText(
+        text = trFor(language, text),
+        modifier = modifier,
+        color = color,
+        fontSize = fontSize,
+        fontStyle = fontStyle,
+        fontWeight = fontWeight,
+        fontFamily = fontFamily,
+        letterSpacing = letterSpacing,
+        textDecoration = textDecoration,
+        textAlign = textAlign,
+        lineHeight = lineHeight,
+        overflow = overflow,
+        softWrap = softWrap,
+        maxLines = maxLines,
+        minLines = minLines,
+        onTextLayout = onTextLayout,
+        style = style,
+    )
+}
+
+/**
+ * The AnnotatedString twin of the localized Text: identical signature to material3's, and a
+ * straight pass-through — an annotated string is already-styled content (terminal lines, log
+ * rows), not a lookup key. The two overloads together are a drop-in replacement for
+ * material3's Text at every call site in the app.
+ */
+@Composable
+fun Text(
+    text: AnnotatedString,
+    modifier: Modifier = Modifier,
+    color: Color = Color.Unspecified,
+    fontSize: TextUnit = TextUnit.Unspecified,
+    fontStyle: FontStyle? = null,
+    fontWeight: FontWeight? = null,
+    fontFamily: FontFamily? = null,
+    letterSpacing: TextUnit = TextUnit.Unspecified,
+    textDecoration: TextDecoration? = null,
+    textAlign: TextAlign? = null,
+    lineHeight: TextUnit = TextUnit.Unspecified,
+    overflow: TextOverflow = TextOverflow.Clip,
+    softWrap: Boolean = true,
+    maxLines: Int = Int.MAX_VALUE,
+    minLines: Int = 1,
+    onTextLayout: (TextLayoutResult) -> Unit = {},
+    style: TextStyle = LocalTextStyle.current,
+) {
+    MaterialText(
+        text = text,
+        modifier = modifier,
+        color = color,
+        fontSize = fontSize,
+        fontStyle = fontStyle,
+        fontWeight = fontWeight,
+        fontFamily = fontFamily,
+        letterSpacing = letterSpacing,
+        textDecoration = textDecoration,
+        textAlign = textAlign,
+        lineHeight = lineHeight,
+        overflow = overflow,
+        softWrap = softWrap,
+        maxLines = maxLines,
+        minLines = minLines,
+        onTextLayout = onTextLayout,
+        style = style,
+    )
+}
 
 /** Mono section label, e.g. "HOST" / "MAINTENANCE". */
 @Composable
@@ -748,6 +859,9 @@ enum class MainTab(val label: String) {
     Dashboard("Dashboard"), Network("Network"), Clients("Clients"), Terminal("Terminal"), System("System")
 }
 
+/** The tab's label in the language in force — the enum's own English is the key. */
+fun tabLabel(tab: MainTab): String = trFor(AppLocale.current, tab.label)
+
 fun tabIcon(tab: MainTab): ImageVector = when (tab) {
     MainTab.Dashboard -> WrtIcons.Dashboard
     MainTab.Network -> WrtIcons.Network
@@ -782,8 +896,8 @@ fun WrtBottomNav(current: MainTab, onSelect: (MainTab) -> Unit) {
                 NavigationBarItem(
                     selected = active,
                     onClick = { onSelect(tab) },
-                    icon = { Icon(tabIcon(tab), tab.label, Modifier.size(21.dp), tint = c) },
-                    label = { Text(tab.label, style = sans(9.5f, if (active) 600 else 500, c)) },
+                    icon = { Icon(tabIcon(tab), tabLabel(tab), Modifier.size(21.dp), tint = c) },
+                    label = { Text(tabLabel(tab), style = sans(9.5f, if (active) 600 else 500, c)) },
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = Wrt.Accent,
                         selectedTextColor = Wrt.Accent,

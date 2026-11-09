@@ -14,23 +14,21 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Text as MaterialText
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -52,6 +50,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import androidx.core.content.FileProvider
 import com.vivekkaushik.wrtpulse.data.AiReport
 import com.vivekkaushik.wrtpulse.data.AiReportPdf
@@ -60,6 +59,7 @@ import com.vivekkaushik.wrtpulse.data.AiStore
 import com.vivekkaushik.wrtpulse.net.AiChat
 import com.vivekkaushik.wrtpulse.net.AiError
 import com.vivekkaushik.wrtpulse.net.AiSettings
+import com.vivekkaushik.wrtpulse.net.FreeModels
 import com.vivekkaushik.wrtpulse.ops.AiPrompt
 import com.vivekkaushik.wrtpulse.ops.CommandSafety
 import com.vivekkaushik.wrtpulse.ops.Finding
@@ -70,7 +70,11 @@ import com.vivekkaushik.wrtpulse.ui.MonoTag
 import com.vivekkaushik.wrtpulse.ui.PrimaryButton
 import com.vivekkaushik.wrtpulse.ui.SectionLabel as BaseSectionLabel
 import com.vivekkaushik.wrtpulse.ui.StatusDot
+import com.vivekkaushik.wrtpulse.ui.Text
 import com.vivekkaushik.wrtpulse.ui.WrtIcons
+import com.vivekkaushik.wrtpulse.ui.FilterChip
+import com.vivekkaushik.wrtpulse.ui.i18n.AppLanguage
+import com.vivekkaushik.wrtpulse.ui.i18n.trC
 import com.vivekkaushik.wrtpulse.ui.mono
 import com.vivekkaushik.wrtpulse.ui.sans
 import com.vivekkaushik.wrtpulse.ui.theme.Wrt
@@ -84,95 +88,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-private val LocalArabic = compositionLocalOf { true }
-
-@Composable
-private fun Text(
-    text: String,
-    modifier: Modifier = Modifier,
-    style: TextStyle = LocalTextStyle.current,
-    maxLines: Int = Int.MAX_VALUE,
-    minLines: Int = 1,
-    softWrap: Boolean = true,
-    overflow: TextOverflow = TextOverflow.Clip,
-) {
-    MaterialText(
-        text = localized(text, LocalArabic.current),
-        modifier = modifier,
-        style = style,
-        maxLines = maxLines,
-        minLines = minLines,
-        softWrap = softWrap,
-        overflow = overflow,
-    )
-}
-
-private fun localized(value: String, arabic: Boolean): String {
-    if (!arabic) return value
-    if (value.startsWith("Export ") && value.endsWith(" saved analysis(es) as JSON")) {
-        return "تصدير ${value.removePrefix("Export ").removeSuffix(" saved analysis(es) as JSON")} تحليل محفوظ بصيغة JSON"
-    }
-    return when (value) {
-        "Connect to a router to analyze it." -> "اتصل براوتر لتحليله."
-        "HOW IT WORKS" -> "كيف يعمل التحليل"
-        "AI PROVIDER" -> "مزود الذكاء الاصطناعي"
-        "Use OpenAI" -> "استخدام OpenAI"
-        "Use OpenRouter" -> "استخدام OpenRouter"
-        "Use Gemini" -> "استخدام Gemini"
-        "Use Ollama (local)" -> "استخدام Ollama (محلي)"
-        "BASE URL" -> "عنوان الخدمة الأساسي"
-        "MODEL" -> "النموذج"
-        "API KEY" -> "مفتاح API"
-        "Save provider" -> "حفظ إعداد المزود"
-        "Save provider to enable analysis" -> "احفظ المزود لتفعيل التحليل"
-        "NETWORK HEALTH" -> "صحة الشبكة"
-        "Wi-Fi" -> "Wi-Fi"
-        "Mesh" -> "الشبكة المتداخلة"
-        "Performance" -> "الأداء"
-        "Security" -> "الأمان"
-        "Radio & channels" -> "الراديو والقنوات"
-        "Client link quality" -> "جودة رابط العميل"
-        "WAN, DNS & DHCP" -> "WAN وDNS وDHCP"
-        "Mesh expert" -> "خبير Mesh"
-        "Full diagnosis" -> "تشخيص شامل"
-        "60-SECOND PERFORMANCE SAMPLE" -> "عينة أداء لمدة 60 ثانية"
-        "Sample for 60 seconds" -> "جمع عينة لمدة 60 ثانية"
-        "Sample again" -> "جمع عينة جديدة"
-        "LOCAL DIAGNOSIS" -> "التشخيص المحلي"
-        "READY-MADE ANALYSES" -> "تحليلات جاهزة"
-        "WHAT WILL BE SENT" -> "ما سيتم إرساله"
-        "Review exact data before sending" -> "راجع البيانات قبل الإرسال"
-        "Hide exact send preview" -> "إخفاء معاينة الإرسال"
-        "Read the router again" -> "قراءة الراوتر مجددًا"
-        "ASK" -> "السؤال"
-        "Analyze" -> "إعادة التحليل"
-        "Analyzing…" -> "جارٍ التحليل…"
-        "DIAGNOSIS & REPAIR PLAN" -> "التشخيص وخطة الإصلاح"
-        "SAVED ANALYSES" -> "التحليلات المحفوظة"
-        "REPORT" -> "التقرير"
-        "Hide MAC & public addresses" -> "إخفاء عناوين MAC والعناوين العامة"
-        "COMMANDS IN THE ANSWER" -> "الأوامر في النتيجة"
-        "copy" -> "نسخ"
-        "tap to copy" -> "اضغط للنسخ"
-        "streaming…" -> "جارٍ استقبال النتيجة…"
-        "reading…" -> "جارٍ القراءة…"
-        "sampling…" -> "جارٍ أخذ العينة…"
-        "Sampling the router…" -> "جارٍ أخذ عينة من الراوتر…"
-        "Reading the router…" -> "جارٍ قراءة الراوتر…"
-        "Share AI history JSON" -> "مشاركة سجل التحليل JSON"
-        "Export Markdown" -> "تصدير Markdown"
-        "Export plain text" -> "تصدير نص عادي"
-        "Export PDF" -> "تصدير PDF"
-        "Markdown" -> "Markdown"
-        "Plain text" -> "نص عادي"
-        "PDF" -> "PDF"
-        "No saved analyses to export" -> "لا توجد تحليلات محفوظة لتصديرها"
-        "Read-only commands copy on one tap. Changing ones need a second tap. Destructive ones are never offered for copying." -> "تُنسخ أوامر الفحص بلمسة واحدة. أوامر التغيير تحتاج تأكيدًا ثانيًا، والأوامر الخطرة لا يمكن نسخها."
-        "Switch to English" -> "التبديل إلى العربية"
-        else -> value
-    }
-}
-
+/** Mono section label — same as the shared one; the string localizes inside it. */
 @Composable
 private fun SectionLabel(
     text: String,
@@ -181,9 +97,10 @@ private fun SectionLabel(
     tracking: Double = 0.12,
     modifier: Modifier = Modifier,
 ) {
-    BaseSectionLabel(localized(text, LocalArabic.current), color, size, tracking, modifier)
+    BaseSectionLabel(text, color, size, tracking, modifier)
 }
 
+/** Field label: a section label at the field's own size. */
 @Composable
 private fun LocalizedFieldLabel(text: String) {
     SectionLabel(text, size = 10f, tracking = 0.12)
@@ -224,15 +141,19 @@ fun AiAnalysisScreen(
     settings: AiSettings,
     onBack: () -> Unit,
     onSaveSettings: (AiSettings) -> Unit,
+    /** The app-wide language, and the one switch that changes it — this screen keeps a
+     *  toggle of its own because it is where the reader of either language lands first. */
+    language: AppLanguage = AppLanguage.ENGLISH,
+    onLanguage: (AppLanguage) -> Unit = {},
 ) {
     val scope = rememberCoroutineScope()
     var question by remember { mutableStateOf("") }
     var showPayload by remember { mutableStateOf(false) }
     var savedNote by remember { mutableStateOf<String?>(null) }
     var hideSensitive by remember { mutableStateOf(true) }
-    var arabic by remember { mutableStateOf(true) }
     var analysisJob by remember { mutableStateOf<Job?>(null) }
     var verificationOutput by remember { mutableStateOf("") }
+    val arabic = language == AppLanguage.ARABIC
 
     // One read on arrival, like every other screen: a snapshot the user has not asked to
     // refresh is exactly as stale as the last time they looked at it.
@@ -241,12 +162,8 @@ fun AiAnalysisScreen(
         store?.loadHistory()
     }
 
-    CompositionLocalProvider(
-        LocalLayoutDirection provides if (arabic) LayoutDirection.Rtl else LayoutDirection.Ltr,
-        LocalArabic provides arabic,
-    ) {
     Column(Modifier.fillMaxSize().background(Wrt.BgScreen)) {
-        FormTopBar(if (arabic) "تحليل الراوتر" else "Router analysis", onBack)
+        FormTopBar(trC("Router analysis"), onBack)
         Row(
             Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 6.dp),
             horizontalArrangement = Arrangement.End,
@@ -254,10 +171,15 @@ fun AiAnalysisScreen(
         ) {
             Text(if (arabic) "العربية" else "English", style = sans(10f, 600, Wrt.AccentBody))
             Spacer(Modifier.width(8.dp))
-            MonoTag(if (arabic) "EN" else "ع", color = Wrt.Accent, border = Wrt.BorderInput)
+            MonoTag(if (arabic) "ع" else "EN", color = Wrt.Accent, border = Wrt.BorderInput)
             Spacer(Modifier.width(6.dp))
-            Box(Modifier.clickable { arabic = !arabic }) {
-                Text(if (arabic) "Switch to English" else "التبديل للعربية", style = sans(10f, 600, Wrt.Accent))
+            Box(Modifier.clickable {
+                onLanguage(if (arabic) AppLanguage.ENGLISH else AppLanguage.ARABIC)
+            }) {
+                Text(
+                    if (arabic) "التبديل إلى الإنجليزية" else "Switch to Arabic",
+                    style = sans(10f, 600, Wrt.Accent),
+                )
             }
         }
         if (store == null) {
@@ -333,7 +255,7 @@ fun AiAnalysisScreen(
                                 analysisJob = scope.launch {
                                     store.analyze(
                                         settings,
-                                        "${question.trim()}\n\nنتيجة فحص إضافية من المستخدم:\n${verificationOutput.trim()}",
+                                        "${question.trim()}\n\nAdditional check output from the user:\n${verificationOutput.trim()}",
                                     )
                                 }
                             }
@@ -362,7 +284,6 @@ fun AiAnalysisScreen(
             }
         }
     }
-    }
 }
 
 @Composable
@@ -370,15 +291,15 @@ private fun AnalysisStagesCard(store: AiStore) {
     val active = store.phase
     Card {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            SectionLabel("مراحل التحليل / ANALYSIS STAGES", size = 9.5f, tracking = 0.04)
+            SectionLabel("ANALYSIS STAGES", size = 9.5f, tracking = 0.14)
             FlexSpacer()
             MonoTag(
                 when (active) {
-                    "reading_router" -> "قراءة الراوتر"
-                    "sampling_performance" -> "تحليل المؤشرات"
-                    "preparing_solutions" -> "إعداد الحلول"
-                    "ready" -> "جاهز للمراجعة"
-                    else -> "بانتظار البدء"
+                    "reading_router" -> "Reading router"
+                    "sampling_performance" -> "Analyzing metrics"
+                    "preparing_solutions" -> "Preparing solutions"
+                    "ready" -> "Ready for review"
+                    else -> "Waiting to start"
                 },
                 color = if (active == "idle") Wrt.TextDim else Wrt.AccentBody,
                 border = Wrt.BorderInput,
@@ -389,14 +310,15 @@ private fun AnalysisStagesCard(store: AiStore) {
             horizontalArrangement = Arrangement.spacedBy(5.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            StageStep("قراءة الراوتر", active == "reading_router", store.snapshot != null)
+            StageStep("Reading router", active == "reading_router", store.snapshot != null)
             StageConnector(store.snapshot != null)
-            StageStep("تحليل المؤشرات", active == "sampling_performance", store.health != null)
+            StageStep("Analyzing metrics", active == "sampling_performance", store.health != null)
             StageConnector(store.health != null)
-            StageStep("إعداد الحلول", active == "preparing_solutions", store.answer != null)
+            StageStep("Preparing solutions", active == "preparing_solutions", store.answer != null)
         }
         Text(
-            "القراءة والتحليل للعرض فقط. لا ينفّذ التطبيق أوامر التغيير تلقائيًا، وتبقى النتيجة الجزئية محفوظة عند إيقاف الطلب.",
+            "Reading and analysis are view-only. The app never runs change commands on its own, " +
+                "and a partial result is kept when a request is stopped.",
             style = sans(10.5f, 450, Wrt.TextDim),
             modifier = Modifier.padding(top = 10.dp),
         )
@@ -421,16 +343,16 @@ private fun DataFreshnessCard(store: AiStore) {
     val fmt = remember { SimpleDateFormat("HH:mm:ss", Locale.getDefault()) }
     Card {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            SectionLabel("حالة البيانات / DATA STATUS", size = 9.5f, tracking = 0.04)
+            SectionLabel("DATA STATUS", size = 9.5f, tracking = 0.14)
             FlexSpacer()
-            MonoTag(if (store.snapshot == null) "لا توجد قراءة" else "بيانات محلية", color = Wrt.AccentBody, border = Wrt.BorderInput)
+            MonoTag(if (store.snapshot == null) "no reading yet" else "local data", color = Wrt.AccentBody, border = Wrt.BorderInput)
         }
-        FreshnessRow("آخر قراءة للراوتر", store.lastSnapshotAtMs?.let { fmt.format(Date(it)) } ?: "لم تُقرأ بعد")
-        FreshnessRow("آخر عينة أداء", store.lastSampleAtMs?.let { fmt.format(Date(it)) } ?: "لم تُجمع بعد")
+        FreshnessRow("Last router read", store.lastSnapshotAtMs?.let { fmt.format(Date(it)) } ?: "not read yet")
+        FreshnessRow("Last performance sample", store.lastSampleAtMs?.let { fmt.format(Date(it)) } ?: "not sampled yet")
         if (store.unavailableSections.isNotEmpty()) {
-            Text("أقسام غير متاحة: ${store.unavailableSections.joinToString("، ")}", style = sans(10f, 550, Wrt.AmberText), modifier = Modifier.padding(top = 8.dp))
+            Text("Unavailable sections: ${store.unavailableSections.joinToString(", ")}", style = sans(10f, 550, Wrt.AmberText), modifier = Modifier.padding(top = 8.dp))
         } else if (store.snapshot != null) {
-            Text("كل أقسام القراءة الأساسية متاحة.", style = sans(10f, 500, Wrt.Green), modifier = Modifier.padding(top = 8.dp))
+            Text("All core reading sections are available.", style = sans(10f, 500, Wrt.Green), modifier = Modifier.padding(top = 8.dp))
         }
     }
 }
@@ -440,7 +362,7 @@ private fun FreshnessRow(label: String, value: String) {
     Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
         Text(label, style = sans(10.5f, 500, Wrt.TextSecondary))
         FlexSpacer()
-        Text(value, style = mono(10f, 600, if (value.contains("بعد")) Wrt.TextDim else Wrt.AccentBody))
+        Text(value, style = mono(10f, 600, if (value.startsWith("not ")) Wrt.TextDim else Wrt.AccentBody))
     }
 }
 
@@ -500,24 +422,25 @@ private fun ProviderCard(
 
     // The list loads itself: as soon as the provider can answer it — a base URL that parses,
     // and a key unless the endpoint is on this network — the dropdown fills without a press.
-    // The 400ms pause keeps the fetch off every keystroke; a restart cancels the run before it.
+    // OpenRouter is the one provider whose /models answers with no key at all, so its free
+    // list loads the moment its preset is tapped. The 400ms pause keeps the fetch off every
+    // keystroke; a restart cancels the run before it.
     LaunchedEffect(endpoint, key, modelsTick) {
         val trimmed = endpoint.trim()
         val url = runCatching { URL(trimmed) }.getOrNull()
         val local = AiSettings.isLocalHost(url?.host.orEmpty())
+        val openRouter = url != null && FreeModels.isOpenRouterHost(trimmed)
         when {
             trimmed.isEmpty() || url == null -> modelsNote = null
             url.protocol.equals("http", true) && !local -> modelsNote = null
-            key.isBlank() && !local ->
-                modelsNote = "Add the API key and the model list loads by itself."
+            key.isBlank() && !local && !openRouter ->
+                modelsNote = "Add the API key and the provider's full model list loads by itself."
             else -> {
                 delay(400)
                 modelsLoading = true
                 modelsError = null
-                modelsNote = "loading the model list from ${url.host}…"
+                modelsNote = "loading the model list from ${url?.host}…"
                 try {
-                    val openRouter = url.host.equals("openrouter.ai", ignoreCase = true) ||
-                        url.host.endsWith(".openrouter.ai", ignoreCase = true)
                     models = AiChat.listModels(
                         AiSettings(baseUrl = trimmed, model = "probe", apiKey = key.trim()),
                         freeOnly = openRouter,
@@ -525,7 +448,7 @@ private fun ProviderCard(
                     modelsNote = if (openRouter) {
                         "${models.size} free OpenRouter models available — pick one or type any id."
                     } else {
-                        "${models.size} models from ${url.host} — pick one or type any id."
+                        "${models.size} models from ${url?.host} — pick one or type any id."
                     }
                 } catch (e: CancellationException) {
                     throw e
@@ -545,34 +468,35 @@ private fun ProviderCard(
         Text(
             "Any OpenAI-compatible chat endpoint: OpenAI, OpenRouter, Gemini, Groq, your own " +
                 "gateway, or an Ollama server on your LAN — nothing leaves the network with that " +
-                "one. The model list below loads straight from the provider. The key is sealed " +
-                "with the phone's keystore, like a router password.",
+                "one. Free models need no payment: OpenRouter marks its own with :free, Groq and " +
+                "Gemini answer on a free-tier key, and a local Ollama is free by definition. The " +
+                "key is sealed with the phone's keystore, like a router password.",
             style = sans(11f, 450, Wrt.TextSecondary),
             modifier = Modifier.padding(top = 8.dp),
         )
         Row(Modifier.padding(top = 8.dp)) {
             Box(Modifier.weight(1f).padding(end = 4.dp)) {
-                GhostButton(localized("Use OpenAI", LocalArabic.current)) {
+                GhostButton("Use OpenAI") {
                     endpoint = AiSettings.DEFAULT_BASE_URL
                     model = AiSettings.DEFAULT_MODEL
                 }
             }
             Box(Modifier.weight(1f).padding(start = 4.dp)) {
-                GhostButton(localized("Use OpenRouter", LocalArabic.current)) {
+                GhostButton("Use OpenRouter") {
                     endpoint = AiSettings.OPENROUTER_BASE_URL
-                    model = AiSettings.OPENROUTER_MODEL
+                    model = FreeModels.OPENROUTER.first()
                 }
             }
         }
         Row(Modifier.padding(top = 8.dp)) {
             Box(Modifier.weight(1f).padding(end = 4.dp)) {
-                GhostButton(localized("Use Gemini", LocalArabic.current)) {
+                GhostButton("Use Gemini") {
                     endpoint = AiSettings.GEMINI_BASE_URL
                     model = AiSettings.GEMINI_MODEL
                 }
             }
             Box(Modifier.weight(1f).padding(start = 4.dp)) {
-                GhostButton(localized("Use Ollama (local)", LocalArabic.current)) {
+                GhostButton("Use Ollama (local)") {
                     endpoint = AiSettings.OLLAMA_BASE_URL
                     model = AiSettings.OLLAMA_MODEL
                     key = ""
@@ -589,13 +513,27 @@ private fun ProviderCard(
         }
         LocalizedFieldLabel("BASE URL")
         FormTextField(endpoint, { endpoint = it })
-        val openRouter = runCatching { URL(endpoint.trim()).host }
-            .getOrNull()?.equals("openrouter.ai", ignoreCase = true) == true
-        LocalizedFieldLabel(if (openRouter) "MODEL (FREE OPENROUTER)" else "MODEL")
+
+        // The dropdown's two sources: the curated free catalog for this provider (always
+        // there, no key, no network) and whatever /models fetched. Merged and de-duplicated,
+        // with the known-free ids kept apart so the picker can badge and filter them.
+        val catalogFree = remember(endpoint) { FreeModels.forBaseUrl(endpoint) }
+        val merged = remember(models, catalogFree) {
+            (catalogFree + models).distinct().sorted()
+        }
+        val freeIds = remember(merged, catalogFree) {
+            val set = mutableSetOf<String>()
+            set.addAll(catalogFree)
+            merged.forEach { if (FreeModels.isFreeModelId(it)) set += it }
+            set
+        }
+        val openRouter = FreeModels.isOpenRouterHost(endpoint)
+        LocalizedFieldLabel(if (openRouter) "MODEL · FREE ON OPENROUTER" else "MODEL")
         ModelField(
             value = model,
             onValue = { model = it },
-            options = models,
+            options = merged,
+            freeIds = freeIds,
             loading = modelsLoading,
             onRefresh = { modelsTick++ },
         )
@@ -632,7 +570,7 @@ private fun ProviderCard(
         }
         Spacer(Modifier.height(10.dp))
         PrimaryButton(
-            localized(if (settings.configured) "Save provider" else "Save provider to enable analysis", LocalArabic.current),
+            if (settings.configured) "Save provider" else "Save provider to enable analysis",
             color = if (endpoint.isBlank() || model.isBlank()) Wrt.TextDim else Wrt.Accent,
         ) {
             onSave(
@@ -647,63 +585,254 @@ private fun ProviderCard(
 }
 
 /**
- * The model field: a text field that is also its own dropdown. The options come from the
- * provider's own /models endpoint and filter to what is typed — with hundreds of ids behind
- * OpenRouter the filter is what keeps the menu usable. Typing stays first-class: a gateway
- * that lists no models, or one whose list failed to load, still takes a hand-typed id.
+ * The model field: a text field that is also its own dropdown, for real.
+ *
+ * Two ways down into the same list. The chevron in the field opens the picker; the full-width
+ * browse row under it — the one the eye lands on — opens it too, and says how many models are
+ * waiting and how many of them are free before it is opened. The picker is a dialog with a
+ * search box, an All/Free filter when free ids exist, and a scrollable list — it works before
+ * any key is typed and before any fetch succeeds, because the curated free catalog is in the
+ * options from the first frame. Typing stays first-class: the field takes a hand-typed id, and
+ * the picker's search ends in a “use what you typed” row rather than a dead end.
  */
 @Composable
 private fun ModelField(
     value: String,
     onValue: (String) -> Unit,
     options: List<String>,
+    freeIds: Set<String>,
     loading: Boolean,
     onRefresh: () -> Unit,
 ) {
-    var open by remember { mutableStateOf(false) }
-    Box {
-        FormTextField(
-            value,
-            onValue,
-            trailing = {
-                Icon(
-                    WrtIcons.ChevronDown,
-                    if (options.isEmpty()) "load the model list" else "pick a model",
-                    Modifier.size(16.dp).clickable {
-                        if (options.isEmpty()) onRefresh()
-                        open = !open
-                    },
-                    tint = if (options.isEmpty()) Wrt.TextDim else Wrt.Accent,
-                )
-            },
-        )
-        DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-            val needle = value.trim()
-            val matching = options.filter { id ->
-                id != value && (needle.isEmpty() || id.contains(needle, ignoreCase = true))
-            }
-            if (matching.isEmpty()) {
-                DropdownMenuItem(
-                    text = {
-                        Text(
-                            if (loading) "loading the model list…" else "nothing matches — type the id by hand",
-                            style = sans(11f, 450, Wrt.TextDim),
-                        )
-                    },
-                    onClick = { open = false },
-                )
-            } else {
-                matching.forEach { id ->
-                    DropdownMenuItem(
-                        text = { Text(id, style = mono(12.5f, 500)) },
-                        onClick = {
-                            open = false
-                            onValue(id)
+    var pickerOpen by remember { mutableStateOf(false) }
+    Column {
+        Box {
+            FormTextField(
+                value,
+                onValue,
+                trailing = {
+                    Icon(
+                        WrtIcons.ChevronDown,
+                        if (options.isEmpty()) "load the model list" else "pick a model",
+                        Modifier.size(16.dp).clickable {
+                            if (options.isEmpty() && !loading) onRefresh()
+                            pickerOpen = true
                         },
+                        tint = if (options.isEmpty() && !loading) Wrt.TextDim else Wrt.Accent,
                     )
+                },
+            )
+        }
+        // The dropdown's own row: the whole width opens the picker, and it never lies about
+        // what is inside — the counts are the counts the picker will show.
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .padding(top = 6.dp)
+                .border(1.dp, Wrt.BorderInput, RoundedCornerShape(10.dp))
+                .background(Wrt.BgDeep, RoundedCornerShape(10.dp))
+                .clickable {
+                    if (options.isEmpty() && !loading) onRefresh()
+                    pickerOpen = true
+                }
+                .padding(horizontal = 12.dp, vertical = 9.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Icon(
+                WrtIcons.ChevronDown,
+                null,
+                Modifier.size(14.dp),
+                tint = Wrt.Accent,
+            )
+            Text(
+                if (loading) "loading the model list…" else "Pick from the list",
+                style = sans(11f, 600, Wrt.Accent),
+            )
+            FlexSpacer()
+            if (!loading) {
+                MonoTag("${options.size}", color = Wrt.TextSecondary, border = Wrt.BorderInput)
+                if (freeIds.isNotEmpty()) {
+                    MonoTag("${freeIds.size} FREE", color = Wrt.Green, border = Wrt.Green.copy(alpha = 0.4f))
                 }
             }
         }
+    }
+    if (pickerOpen) {
+        ModelPickerDialog(
+            current = value,
+            options = options,
+            freeIds = freeIds,
+            loading = loading,
+            onRefresh = onRefresh,
+            onDismiss = { pickerOpen = false },
+            onPick = {
+                onValue(it)
+                pickerOpen = false
+            },
+        )
+    }
+}
+
+/**
+ * The real dropdown: every option in a scrollable, searchable, filterable list. Free ids are
+ * badged and can be filtered to; the current id is checked; a search that matches nothing
+ * offers what was typed as the id itself — the autocomplete shape, so typing never dead-ends.
+ */
+@Composable
+private fun ModelPickerDialog(
+    current: String,
+    options: List<String>,
+    freeIds: Set<String>,
+    loading: Boolean,
+    onRefresh: () -> Unit,
+    onDismiss: () -> Unit,
+    onPick: (String) -> Unit,
+) {
+    var query by remember { mutableStateOf("") }
+    var freeOnly by remember(options, freeIds) { mutableStateOf(false) }
+    val needle = query.trim()
+    val filtered = remember(options, freeIds, needle, freeOnly) {
+        options.filter { id ->
+            (!freeOnly || id in freeIds) &&
+                (needle.isEmpty() || id.contains(needle, ignoreCase = true))
+        }
+    }
+    val exact = needle.isNotEmpty() && options.any { it.equals(needle, ignoreCase = true) }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .border(1.dp, Wrt.BorderCard, RoundedCornerShape(16.dp))
+                .background(Wrt.BgBar, RoundedCornerShape(16.dp))
+                .padding(16.dp)
+                .heightIn(max = 540.dp),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("Pick a model", style = sans(15f, 650))
+                FlexSpacer()
+                if (loading) {
+                    Box(Modifier.size(8.dp).background(Wrt.Accent, CircleShape))
+                    Spacer(Modifier.width(8.dp))
+                    Text("loading…", style = mono(9.5f, 600, Wrt.Accent))
+                } else {
+                    Icon(
+                        WrtIcons.Reboot,
+                        "reload the model list",
+                        Modifier.size(15.dp).clickable { onRefresh() },
+                        tint = Wrt.TextDim,
+                    )
+                }
+            }
+            Text(
+                if (freeIds.isNotEmpty()) {
+                    "${options.size} models · ${freeIds.size} of them free"
+                } else {
+                    "${options.size} models from this provider"
+                },
+                style = sans(10f, 500, Wrt.TextDim),
+                modifier = Modifier.padding(top = 3.dp),
+            )
+            Spacer(Modifier.height(10.dp))
+            FormTextField(query, { query = it })
+            if (freeIds.isNotEmpty()) {
+                Row(
+                    Modifier.padding(top = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    FilterChip("All", !freeOnly) { freeOnly = false }
+                    FilterChip("Free · ${freeIds.size}", freeOnly) { freeOnly = true }
+                }
+            }
+            LazyColumn(
+                Modifier
+                    .weight(1f, fill = false)
+                    .padding(top = 8.dp)
+                    .heightIn(max = 330.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                if (needle.isNotEmpty() && !exact) {
+                    item {
+                        ModelRow(
+                            id = needle,
+                            free = needle in freeIds,
+                            current = false,
+                            highlight = true,
+                            onClick = { onPick(needle) },
+                        )
+                    }
+                }
+                if (filtered.isEmpty() && (needle.isEmpty() || exact)) {
+                    item {
+                        Text(
+                            if (loading) "loading the model list…"
+                            else if (options.isEmpty()) "no list yet — type an id by hand or reload"
+                            else "nothing matches — type the id by hand",
+                            style = sans(11f, 450, Wrt.TextDim),
+                            modifier = Modifier.padding(vertical = 10.dp),
+                        )
+                    }
+                }
+                items(filtered) { id ->
+                    ModelRow(
+                        id = id,
+                        free = id in freeIds,
+                        current = id.equals(current, ignoreCase = true),
+                        highlight = false,
+                        onClick = { onPick(id) },
+                    )
+                }
+            }
+            Text(
+                "Typing in the field above filters; picking sets the model. The id can also be typed straight into the main field.",
+                style = sans(9f, 450, Wrt.TextFaint),
+                modifier = Modifier.padding(top = 8.dp),
+            )
+        }
+    }
+}
+
+/** One row of the picker: the id in mono, a FREE badge when known free, a check when current. */
+@Composable
+private fun ModelRow(
+    id: String,
+    free: Boolean,
+    current: Boolean,
+    highlight: Boolean,
+    onClick: () -> Unit,
+) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .border(
+                1.dp,
+                when {
+                    current -> Wrt.Accent.copy(alpha = 0.55f)
+                    highlight -> Wrt.Accent.copy(alpha = 0.35f)
+                    else -> Wrt.BorderHair
+                },
+                RoundedCornerShape(9.dp),
+            )
+            .background(if (current) Wrt.BgCode else Wrt.BgCard, RoundedCornerShape(9.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 10.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        // Model ids are Latin whatever the app's language is; the row keeps its own direction
+        // so an id reads left-to-right inside an RTL screen.
+        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+            Text(
+                if (highlight) "Use \"$id\" as the model id" else id,
+                style = mono(10.5f, if (current) 650 else 500, if (highlight) Wrt.Accent else Wrt.TextSecondary),
+                modifier = Modifier.weight(1f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        if (free) MonoTag("FREE", color = Wrt.Green, border = Wrt.Green.copy(alpha = 0.4f))
+        if (current) Icon(WrtIcons.Check, null, Modifier.size(14.dp), tint = Wrt.Accent)
     }
 }
 
@@ -839,11 +968,11 @@ private fun SampleCard(
         }
         Spacer(Modifier.height(10.dp))
         PrimaryButton(
-            localized(when {
+            when {
                 store.sampling -> "Sampling the router…"
                 t != null -> "Sample again"
                 else -> "Sample for 60 seconds"
-            }, LocalArabic.current),
+            },
             color = if (store.sampling || busy) Wrt.TextDim else Wrt.Accent,
             textColor = if (store.sampling || busy) Wrt.OnAccent else Wrt.BgScreen,
         ) {
@@ -1139,7 +1268,7 @@ private fun DataCard(
             }
         }
         Spacer(Modifier.height(10.dp))
-        GhostButton(localized(if (store.collecting) "Reading the router…" else "Read the router again", LocalArabic.current)) {
+        GhostButton(if (store.collecting) "Reading the router…" else "Read the router again") {
             if (!store.collecting) onReadAgain()
         }
     }
@@ -1189,7 +1318,7 @@ private fun AskCard(
         }
         Spacer(Modifier.height(10.dp))
         PrimaryButton(
-            if (store.analyzing) "إيقاف التحليل" else localized("Analyze", LocalArabic.current),
+            if (store.analyzing) "Stop analysis" else "Analyze",
             color = if (ready || store.analyzing) Wrt.Accent else Wrt.TextDim,
             textColor = if (ready || store.analyzing) Wrt.OnAccent else Wrt.BgScreen,
         ) {
@@ -1197,7 +1326,7 @@ private fun AskCard(
         }
         if (store.analyzing) {
             Text(
-                "سيتم الاحتفاظ بالنص الجزئي الذي وصل حتى الآن، ولن يُنفّذ أي أمر على الراوتر.",
+                "The partial text that arrived so far is kept, and no command is ever run on the router.",
                 style = sans(9.5f, 450, Wrt.TextDim),
                 modifier = Modifier.padding(top = 6.dp),
             )
@@ -1209,12 +1338,12 @@ private fun AskCard(
 private fun DiagnosisSummaryCard(store: AiStore) {
     Card {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            SectionLabel("التشخيص / DIAGNOSIS", size = 9.5f, tracking = 0.04)
+            SectionLabel("DIAGNOSIS", size = 9.5f, tracking = 0.14)
             FlexSpacer()
-            MonoTag("من الأدلة المحلية", color = Wrt.AccentBody, border = Wrt.BorderInput)
+            MonoTag("from local evidence", color = Wrt.AccentBody, border = Wrt.BorderInput)
         }
         if (store.findings.isEmpty()) {
-            Text("لم تُرصد مشكلة واضحة في القراءة الحالية. هذا لا يغني عن إعادة الفحص بعد أي تغيير.", style = sans(11f, 450, Wrt.TextSecondary), modifier = Modifier.padding(top = 8.dp))
+            Text("No obvious issue in the current reading. This does not replace re-checking after any change.", style = sans(11f, 450, Wrt.TextSecondary), modifier = Modifier.padding(top = 8.dp))
         } else {
             store.findings.forEachIndexed { index, finding ->
                 Column(Modifier.padding(top = 9.dp)) {
@@ -1224,7 +1353,7 @@ private fun DiagnosisSummaryCard(store: AiStore) {
                         Text(finding.title, style = sans(11.5f, 650, Wrt.TextSecondary), modifier = Modifier.weight(1f))
                         MonoTag(finding.severity.name, color = severityColor(finding.severity), border = Wrt.BorderHair)
                     }
-                    Text("الدليل: ${finding.evidence}", style = mono(9.5f, 500, Wrt.TextTertiary), modifier = Modifier.padding(top = 4.dp))
+                    Text("Evidence: ${finding.evidence}", style = mono(9.5f, 500, Wrt.TextTertiary), modifier = Modifier.padding(top = 4.dp))
                 }
             }
         }
@@ -1236,13 +1365,13 @@ private fun RepairPlanCard(store: AiStore, text: String) {
     val commands = remember(text) { SafeCommandsExtract(text) }
     Card {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            SectionLabel("خطة الإصلاح / REPAIR PLAN", size = 9.5f, tracking = 0.04)
+            SectionLabel("REPAIR PLAN", size = 9.5f, tracking = 0.14)
             FlexSpacer()
-            MonoTag("مراجعة يدوية", color = Wrt.Amber, border = Wrt.BorderHair)
+            MonoTag("manual review", color = Wrt.Amber, border = Wrt.BorderHair)
         }
-        Text("كل خطوة مستقلة؛ لا ينفّذها التطبيق. راجع الدليل والخطر قبل النسخ.", style = sans(10.5f, 450, Wrt.TextDim), modifier = Modifier.padding(top = 7.dp))
+        Text("Each step stands alone; the app never runs it. Review the evidence and the risk before copying.", style = sans(10.5f, 450, Wrt.TextDim), modifier = Modifier.padding(top = 7.dp))
         if (commands.isEmpty()) {
-            Text("لم يقترح النموذج أمرًا قابلًا للنسخ.", style = sans(10.5f, 500, Wrt.TextSecondary), modifier = Modifier.padding(top = 8.dp))
+            Text("The model proposed no copyable command.", style = sans(10.5f, 500, Wrt.TextSecondary), modifier = Modifier.padding(top = 8.dp))
         } else {
             commands.forEachIndexed { index, cmd ->
                 val color = when (cmd.safety) {
@@ -1254,14 +1383,14 @@ private fun RepairPlanCard(store: AiStore, text: String) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("${index + 1}", style = mono(10f, 700, color))
                         Spacer(Modifier.width(7.dp))
-                        Text(if (cmd.safety == CommandSafety.SAFE) "فحص للقراءة فقط" else if (cmd.safety == CommandSafety.CHANGE) "تغيير إعداد" else "محظور", style = sans(10.5f, 650, color))
+                        Text(if (cmd.safety == CommandSafety.SAFE) "read-only check" else if (cmd.safety == CommandSafety.CHANGE) "changes a setting" else "blocked", style = sans(10.5f, 650, color))
                         FlexSpacer()
-                        MonoTag(if (cmd.safety == CommandSafety.SAFE) "ثقة أعلى" else "يتطلب تأكيدًا", color = color, border = Wrt.BorderHair)
+                        MonoTag(if (cmd.safety == CommandSafety.SAFE) "higher trust" else "needs a second tap", color = color, border = Wrt.BorderHair)
                     }
                     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
                         Text(cmd.text, style = mono(9.5f, 600, if (cmd.safety == CommandSafety.BLOCKED) Wrt.Red else Wrt.TextSecondary).copy(textDecoration = if (cmd.safety == CommandSafety.BLOCKED) TextDecoration.LineThrough else null), modifier = Modifier.padding(top = 6.dp))
                     }
-                    Text("النتيجة المتوقعة: ${cmd.reason ?: "تحسين المؤشر المرتبط بالدليل."}", style = sans(9.5f, 450, Wrt.TextDim), modifier = Modifier.padding(top = 4.dp))
+                    Text("Expected outcome: ${cmd.reason ?: "improves the metric behind the evidence."}", style = sans(9.5f, 450, Wrt.TextDim), modifier = Modifier.padding(top = 4.dp))
                 }
             }
         }
@@ -1277,24 +1406,24 @@ private fun VerificationCard(
 ) {
     Card {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            SectionLabel("التحقق بعد الإصلاح / VERIFY", size = 9.5f, tracking = 0.04)
+            SectionLabel("VERIFY AFTER REPAIR", size = 9.5f, tracking = 0.14)
             FlexSpacer()
-            MonoTag(if (store.temporal != null) "عينة متاحة" else "تحتاج عينة", color = if (store.temporal != null) Wrt.Green else Wrt.Amber, border = Wrt.BorderHair)
+            MonoTag(if (store.temporal != null) "sample ready" else "needs a sample", color = if (store.temporal != null) Wrt.Green else Wrt.Amber, border = Wrt.BorderHair)
         }
-        Text("أعد قراءة الراوتر ثم شغّل عينة الأداء للمقارنة قبل/بعد. استخدم أوامر الفحص فقط للتحقق؛ لا تعتمد على نجاح أمر التغيير وحده.", style = sans(10.5f, 450, Wrt.TextSecondary), modifier = Modifier.padding(top = 8.dp))
+        Text("Re-read the router, then run the performance sample to compare before and after. Verify with read-only commands only; do not rely on a change command succeeding.", style = sans(10.5f, 450, Wrt.TextSecondary), modifier = Modifier.padding(top = 8.dp))
         store.findings.take(3).forEach { finding ->
-            Text("• ${finding.title} — أعد تنفيذ: ${finding.command}", style = mono(9.5f, 500, Wrt.TextTertiary), modifier = Modifier.padding(top = 6.dp))
+            Text("• ${finding.title} — re-run: ${finding.command}", style = mono(9.5f, 500, Wrt.TextTertiary), modifier = Modifier.padding(top = 6.dp))
         }
-        LocalizedFieldLabel("نتيجة الفحص / CHECK OUTPUT")
+        LocalizedFieldLabel("CHECK OUTPUT")
         CheckOutputField(output, onOutput)
         Text(
-            "الصق هنا ناتج الأمر يدويًا. لن يُنفّذ الأمر ولن تُرسل النتيجة إلا عند اختيار إعادة التحليل.",
+            "Paste the command's output here by hand. The command is never run, and nothing is sent until you choose to re-analyze.",
             style = sans(9.5f, 450, Wrt.TextDim),
             modifier = Modifier.padding(top = 5.dp),
         )
         Spacer(Modifier.height(8.dp))
         PrimaryButton(
-            if (store.analyzing) "جارٍ إعادة التحليل…" else "إعادة التحليل بالنتيجة",
+            if (store.analyzing) "Re-analyzing…" else "Re-analyze with the result",
             color = if (output.isBlank() || store.analyzing) Wrt.TextDim else Wrt.Accent,
             textColor = if (output.isBlank() || store.analyzing) Wrt.OnAccent else Wrt.BgScreen,
         ) {
@@ -1556,18 +1685,15 @@ private fun ExportCard(
                     "PDF" to ReportFormat.PDF,
                 ).forEach { (label, format) ->
                     Box(Modifier.weight(1f)) {
-                        GhostButton(localized(label, LocalArabic.current)) { exportReport(context, store, question, hideSensitive, format) }
+                        GhostButton(label) { exportReport(context, store, question, hideSensitive, format) }
                     }
                 }
             }
         }
         Spacer(Modifier.height(8.dp))
         GhostButton(
-            localized(
-                if (store.history.isEmpty()) "No saved analyses to export"
-                else "Export ${store.history.size} saved analysis(es) as JSON",
-                LocalArabic.current,
-            ),
+            if (store.history.isEmpty()) "No saved analyses to export"
+            else "Export ${store.history.size} saved analysis(es) as JSON",
         ) {
             if (store.history.isNotEmpty()) exportAiHistory(context, store.history, hideSensitive)
         }

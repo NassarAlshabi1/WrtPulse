@@ -18,7 +18,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
+import com.vivekkaushik.wrtpulse.ui.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -42,6 +42,9 @@ import com.vivekkaushik.wrtpulse.ui.ConnectionTopBar
 import com.vivekkaushik.wrtpulse.ui.SectionLabel
 import com.vivekkaushik.wrtpulse.ui.WToggle
 import com.vivekkaushik.wrtpulse.ui.WrtIcons
+import com.vivekkaushik.wrtpulse.ui.FlexSpacer
+import com.vivekkaushik.wrtpulse.ui.i18n.AppLanguage
+import com.vivekkaushik.wrtpulse.ui.i18n.trC
 import com.vivekkaushik.wrtpulse.ui.mono
 import com.vivekkaushik.wrtpulse.ui.sans
 import com.vivekkaushik.wrtpulse.ui.theme.Wrt
@@ -67,6 +70,10 @@ fun SystemScreen(
     leds: LedStore? = null,
     backups: BackupStore? = null,
     routerName: String,
+    /** The app-wide language, and the switch that changes it — a setting of the app, so it
+     *  lives here beside the other app rows, not on any one screen. */
+    language: AppLanguage = AppLanguage.ENGLISH,
+    onLanguage: (AppLanguage) -> Unit = {},
     onRouterTap: () -> Unit,
     onOpenLogs: () -> Unit,
     onOpenPackages: () -> Unit = {},
@@ -84,6 +91,7 @@ fun SystemScreen(
 ) {
     var biometricDemo by remember { mutableStateOf(true) }
     var editingHostname by remember { mutableStateOf(false) }
+    var pickingLanguage by remember { mutableStateOf(false) }
     val isLive = live != null
     Column(Modifier.fillMaxSize().background(Wrt.BgScreen)) {
         ConnectionTopBar(
@@ -247,6 +255,30 @@ fun SystemScreen(
                     }
                 }
                 Divider()
+                // The app's language: one row, two options, every screen. The current one is
+                // named in its own script so a reader of either language finds the row without
+                // already knowing the other language's word for it.
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable { pickingLanguage = true }
+                        .padding(vertical = 11.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Icon(WrtIcons.Prompt, null, Modifier.size(18.dp), tint = Wrt.TextTertiary)
+                    Column(Modifier.weight(1f)) {
+                        Text("Language", style = sans(13f, 600))
+                        Text(
+                            if (language == AppLanguage.ARABIC) "العربية — كل الشاشات والأزرار" else "English — every screen and button",
+                            style = sans(10.5f, 400, Wrt.TextDim),
+                            modifier = Modifier.padding(top = 2.dp),
+                        )
+                    }
+                    Text(language.displayName, style = mono(10.5f, 500, Wrt.TextTertiary))
+                    Icon(WrtIcons.ChevronRight, null, Modifier.size(13.dp), tint = Wrt.TextDim)
+                }
+                Divider()
                 ValueRow(
                     "SSH keys", null,
                     when (sshKeyInstalled) {
@@ -271,6 +303,16 @@ fun SystemScreen(
                     onDismiss = { editingHostname = false },
                     onSave = onSetHostname,
                     onSaved = { editingHostname = false },
+                )
+            }
+            if (pickingLanguage) {
+                LanguageDialog(
+                    current = language,
+                    onDismiss = { pickingLanguage = false },
+                    onPick = {
+                        onLanguage(it)
+                        pickingLanguage = false
+                    },
                 )
             }
             SectionLabel("DANGER ZONE", color = Wrt.Red, tracking = 0.14)
@@ -422,6 +464,59 @@ private fun HostnameDialog(
             }
             Spacer(Modifier.height(6.dp))
             GhostButton("Cancel", onClick = onDismiss)
+        }
+    }
+}
+
+/**
+ * The language picker: two options, each named in its own script, with the one in force
+ * checked. Picking applies everywhere at once — the root swaps the CompositionLocal, so
+ * every screen, button and message recomposes in the new language, and the layout flips
+ * with it for Arabic.
+ */
+@Composable
+private fun LanguageDialog(
+    current: AppLanguage,
+    onDismiss: () -> Unit,
+    onPick: (AppLanguage) -> Unit,
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .border(1.dp, Wrt.BorderCard, RoundedCornerShape(16.dp))
+                .background(Wrt.BgBar, RoundedCornerShape(16.dp))
+                .padding(18.dp)
+        ) {
+            Text(trC("Language"), style = sans(15f, 650))
+            Text(
+                trC("Applies to every screen and button, and flips the layout for Arabic."),
+                style = sans(11.5f, 400, Wrt.TextDim, lineHeight = 17.sp),
+                modifier = Modifier.padding(top = 4.dp),
+            )
+            Spacer(Modifier.height(14.dp))
+            AppLanguage.entries.forEach { lang ->
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp)
+                        .border(
+                            1.dp,
+                            if (lang == current) Wrt.Accent.copy(alpha = 0.55f) else Wrt.BorderHair,
+                            RoundedCornerShape(11.dp),
+                        )
+                        .background(if (lang == current) Wrt.BgCode else Wrt.BgCard, RoundedCornerShape(11.dp))
+                        .clickable { onPick(lang) }
+                        .padding(horizontal = 13.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(lang.displayName, style = sans(13.5f, 650))
+                    FlexSpacer()
+                    if (lang == current) {
+                        Icon(WrtIcons.Check, null, Modifier.size(15.dp), tint = Wrt.Accent)
+                    }
+                }
+            }
         }
     }
 }

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The launcher label. The app's name is a brand and stays as-is; this file exists so
+     Android's per-app language list offers Arabic for WrtPulse at all. -->
+<resources>
+    <string name="app_name">WrtPulse</string>
+</resources>

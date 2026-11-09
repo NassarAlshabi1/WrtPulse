@@ -1,0 +1,87 @@
+name: CI
+
+# The gate every push to a working branch passes through: unit tests and a debug build. The
+# Release workflow stays the signed-artifact path (tags only, keystore required); this one is
+# the cheap, always-green-when-green check that a change compiles, tests and packages — the
+# "did anything break" answer for a push, before anyone decides to cut a release.
+#
+# It runs the same JVM-side test suite the workstation does, plus assembleDebug: R8 is off,
+# signing is the debug key, and the AI/SSH code paths are exercised by their fakes, so no
+# secrets are needed and no router is touched.
+
+on:
+  push:
+    branches: ["**"]
+    paths-ignore:
+      - "site/**"
+      - "fastlane/**"
+      - "**.md"
+  pull_request:
+    branches: [master]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Unit tests
+        run: ./gradlew :app:testDebugUnitTest --stacktrace
+
+      - name: Upload test report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-report-${{ github.run_attempt }}
+          path: app/build/reports/tests/**
+          if-no-files-found: ignore
+
+  assemble:
+    name: Debug build
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      # The compile check the repo has always leaned on: a debug APK proves resources,
+      # manifest, R8-less packaging and every screen compile together. Unsigned is fine —
+      # the debug keystore signs it locally on the runner.
+      - name: Assemble debug APK
+        run: ./gradlew :app:assembleDebug --stacktrace
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: wrtpulse-debug-${{ github.run_number }}
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 14

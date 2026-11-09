@@ -3,6 +3,8 @@ package com.vivekkaushik.wrtpulse
 import android.os.Bundle
 import com.vivekkaushik.wrtpulse.ui.LocalLiveTelemetry
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -94,6 +96,10 @@ import com.vivekkaushik.wrtpulse.ui.screens.WifiSection
 import com.vivekkaushik.wrtpulse.ui.screens.initialTerminalLines
 import com.vivekkaushik.wrtpulse.ui.theme.Wrt
 import com.vivekkaushik.wrtpulse.ui.theme.WrtPulseTheme
+import com.vivekkaushik.wrtpulse.ui.i18n.AppLanguage
+import com.vivekkaushik.wrtpulse.ui.i18n.AppLocale
+import com.vivekkaushik.wrtpulse.ui.i18n.LocalAppLanguage
+import com.vivekkaushik.wrtpulse.ui.i18n.tr
 import kotlinx.coroutines.launch
 import java.io.File
 import android.graphics.Color as AndroidColor
@@ -127,6 +133,27 @@ private fun WrtPulseApp() {
         OnboardingFlow(scope, WrtRuntime.client, WrtRuntime.hostKeys)
     }
     LaunchedEffect(Unit) { flow.gateway = WrtRuntime.defaultGateway(context) }
+
+    // The app's language, for every screen. First run follows the device: a phone set to
+    // Arabic opens in Arabic, everything else in English. An explicit choice is remembered —
+    // stored beside the other app prefs, applied through AppLocale so non-composable code
+    // (toasts, stores) sees the same language the composition renders — and RTL follows it,
+    // because a translation that does not flip its layout is only half of one.
+    val basePrefs = remember { context.getSharedPreferences("wrtpulse", android.content.Context.MODE_PRIVATE) }
+    var language by remember {
+        mutableStateOf(
+            AppLanguage.fromCode(basePrefs.getString("app_language", null))
+                ?: if (runCatching { context.resources.configuration.locales[0].language }.getOrDefault("en") == "ar") {
+                    AppLanguage.ARABIC
+                } else AppLanguage.ENGLISH,
+        )
+    }
+    fun setLanguage(next: AppLanguage) {
+        language = next
+        AppLocale.apply(next)
+        basePrefs.edit().putString("app_language", next.code).apply()
+    }
+    LaunchedEffect(language) { AppLocale.apply(language) }
 
     var dest by remember { mutableStateOf(Dest.Boot) }
     // The wireless add/edit steps take the whole screen, tab bar included.
@@ -418,6 +445,12 @@ private fun WrtPulseApp() {
         else -> Wrt.BgScreen
     }
 
+    // The language and its layout direction, provided over the whole tree: every localized
+    // Text subscribes to the local, and RTL flips padding, rows and icons along with it.
+    CompositionLocalProvider(
+        LocalAppLanguage provides language,
+        LocalLayoutDirection provides if (language == AppLanguage.ARABIC) LayoutDirection.Rtl else LayoutDirection.Ltr,
+    ) {
     Box(Modifier.fillMaxSize().background(backdrop)) {
         Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.systemBars)) {
             when (dest) {
@@ -826,6 +859,8 @@ private fun WrtPulseApp() {
                                         settings = aiSettings,
                                         onBack = { aiOpen = false },
                                         onSaveSettings = { saveAiSettings(it) },
+                                        language = language,
+                                        onLanguage = { setLanguage(it) },
                                     )
                                 } else if (aboutOpen) {
                                     AboutScreen(onBack = { aboutOpen = false })
@@ -910,6 +945,8 @@ private fun WrtPulseApp() {
                                         leds = ledStore,
                                         backups = backupStore,
                                         routerName = currentRouter,
+                                        language = language,
+                                        onLanguage = { setLanguage(it) },
                                         onRouterTap = { showSwitcher = true },
                                         onOpenLogs = { logsOpen = true },
                                         onOpenPackages = { packagesOpen = true },
@@ -1047,6 +1084,7 @@ private fun WrtPulseApp() {
                 )
             }
         }
+    }
     }
 
     // Back leaves the app only from the router list, or from onboarding when there is no list
