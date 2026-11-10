@@ -140,6 +140,28 @@ internal object ArabicPatterns {
         Pattern(
             Regex("""^(\d+) mesh nodes? carr(?:y|ies) this router's Wi-Fi\. (.+)$"""),
         ) { m -> "${m.groupValues[1]} عقد mesh تحمل شبكة Wi-Fi لهذا الراوتر. ${m.groupValues[2]}" },
+        // Backup sheet: "Current config is saved to this phone first · wrtpulse-host-<now>.tar.gz"
+        Pattern(
+            Regex("""^Current config is saved to this phone first · (.+)$"""),
+        ) { m -> "تُحفظ الإعدادات الحالية على هذا الهاتف أولًا · ${m.groupValues[1]}" },
+        // Factory reset: "Erases every setting in /overlay and reboots. Firmware 23.05.3 stays; ..." / "The firmware stays; ..."
+        Pattern(
+            Regex("""^Erases every setting in /overlay and reboots\. Firmware (.+) stays; the router comes back as a fresh OpenWrt install\.$"""),
+        ) { m -> "يمحو كل الإعدادات في /overlay ويعيد التشغيل. يبقى النظام ${m.groupValues[1]}؛ ويعود الراوتر كتثبيت OpenWrt جديد." },
+        Pattern(
+            Regex("""^Erases every setting in /overlay and reboots\. The firmware stays; the router comes back as a fresh OpenWrt install\.$"""),
+        ) { m -> "يمحو كل الإعدادات في /overlay ويعيد التشغيل. يبقى النظام؛ ويعود الراوتر كتثبيت OpenWrt جديد." },
+        // Apply sheet: "Wi-Fi drops for ~15 s while radios reload. 12 clients will reconnect on their own. ..." / "Clients will reconnect..."
+        Pattern(
+            Regex("""^Wi-Fi drops for ~15 s while radios reload\. (\d+) clients will reconnect on their own\. If this phone is on that Wi-Fi, the app reconnects too\.$"""),
+        ) { m -> "تنقطع Wi-Fi لنحو 15 ثانية أثناء إعادة تحميل الراديوهات. سيعيد ${m.groupValues[1]} من الأجهزة الاتصال من تلقاء نفسها. إن كان هذا الهاتف على تلك الشبكة فسيعيد التطبيق الاتصال أيضًا." },
+        Pattern(
+            Regex("""^Wi-Fi drops for ~15 s while radios reload\. Clients will reconnect on their own\. If this phone is on that Wi-Fi, the app reconnects too\.$"""),
+        ) { m -> "تنقطع Wi-Fi لنحو 15 ثانية أثناء إعادة تحميل الراديوهات. ستعيد الأجهزة الاتصال من تلقاء نفسها. إن كان هذا الهاتف على تلك الشبكة فسيعيد التطبيق الاتصال أيضًا." },
+        // Lan: "Its mesh nodes follow it: attic to 192.168.1.2, garage to 192.168.1.3. Their saved entries already point there."
+        Pattern(
+            Regex("""^Its mesh nodes follow it: (.+)\. Their saved entries already point there\.$"""),
+        ) { m -> "عقد mesh تتبعه: ${m.groupValues[1]}. مداخلها المحفوظة في التطبيق تشير إلى العنوان الجديد أصلًا." },
     )
 
     /** The first matching pattern's Arabic, or null when none matches. */

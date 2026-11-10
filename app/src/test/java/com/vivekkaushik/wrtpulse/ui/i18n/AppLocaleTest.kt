@@ -84,6 +84,56 @@ class AppLocaleTest {
     }
 
     @Test
+    fun `the audit pass entries translate`() {
+        // The strings the coverage audit found still falling back to English: empty states,
+        // warnings and hints across Backup, Firmware, Wan, Services, RouterList, Firewall.
+        assertEquals("نسيان هذا الراوتر؟", trFor(AppLanguage.ARABIC, "Forget this router?"))
+        assertEquals("جارٍ التحميل…", trFor(AppLanguage.ARABIC, "loading…"))
+        assertEquals("اتصل براوتر لإدارة النسخ الاحتياطية.", trFor(AppLanguage.ARABIC, "Connect to a router to manage backups."))
+        assertEquals("اتصل براوتر لإدارة النظام.", trFor(AppLanguage.ARABIC, "Connect to a router to manage firmware."))
+        assertEquals("اتصل براوتر لإدارة وصلاته الصاعدة.", trFor(AppLanguage.ARABIC, "Connect to a router to manage its uplinks."))
+        assertEquals("اتصل براوتر لإدارة الخدمات.", trFor(AppLanguage.ARABIC, "Connect to a router to manage services."))
+        assertEquals("من ↓ إلى →", trFor(AppLanguage.ARABIC, "from ↓ to →"))
+        assertEquals("كلمة مرور root", trFor(AppLanguage.ARABIC, "ROOT PASSWORD"))
+        assertEquals(
+            "مسح واحد — شغّل\nعينة الستين ثانية أدناه",
+            trFor(AppLanguage.ARABIC, "single sweep — run the\n60-second sample below"),
+        )
+    }
+
+    @Test
+    fun `the audit pass dynamic sentences translate by pattern`() {
+        // Backup sheet's archive-name line
+        assertEquals(
+            "تُحفظ الإعدادات الحالية على هذا الهاتف أولًا · wrtpulse-192.168.1.1-<now>.tar.gz",
+            trFor(AppLanguage.ARABIC, "Current config is saved to this phone first · wrtpulse-192.168.1.1-<now>.tar.gz"),
+        )
+        // Factory reset, both firmware sentences
+        assertEquals(
+            "يمحو كل الإعدادات في /overlay ويعيد التشغيل. يبقى النظام 23.05.3؛ ويعود الراوتر كتثبيت OpenWrt جديد.",
+            trFor(AppLanguage.ARABIC, "Erases every setting in /overlay and reboots. Firmware 23.05.3 stays; the router comes back as a fresh OpenWrt install."),
+        )
+        assertEquals(
+            "يمحو كل الإعدادات في /overlay ويعيد التشغيل. يبقى النظام؛ ويعود الراوتر كتثبيت OpenWrt جديد.",
+            trFor(AppLanguage.ARABIC, "Erases every setting in /overlay and reboots. The firmware stays; the router comes back as a fresh OpenWrt install."),
+        )
+        // Apply sheet's Wi-Fi reload warning, with and without a client count
+        assertEquals(
+            "تنقطع Wi-Fi لنحو 15 ثانية أثناء إعادة تحميل الراديوهات. سيعيد 12 من الأجهزة الاتصال من تلقاء نفسها. إن كان هذا الهاتف على تلك الشبكة فسيعيد التطبيق الاتصال أيضًا.",
+            trFor(AppLanguage.ARABIC, "Wi-Fi drops for ~15 s while radios reload. 12 clients will reconnect on their own. If this phone is on that Wi-Fi, the app reconnects too."),
+        )
+        assertEquals(
+            "تنقطع Wi-Fi لنحو 15 ثانية أثناء إعادة تحميل الراديوهات. ستعيد الأجهزة الاتصال من تلقاء نفسها. إن كان هذا الهاتف على تلك الشبكة فسيعيد التطبيق الاتصال أيضًا.",
+            trFor(AppLanguage.ARABIC, "Wi-Fi drops for ~15 s while radios reload. Clients will reconnect on their own. If this phone is on that Wi-Fi, the app reconnects too."),
+        )
+        // Lan's mesh-node follow line
+        assertEquals(
+            "عقد mesh تتبعه: attic to 192.168.1.2, garage to 192.168.1.3. مداخلها المحفوظة في التطبيق تشير إلى العنوان الجديد أصلًا.",
+            trFor(AppLanguage.ARABIC, "Its mesh nodes follow it: attic to 192.168.1.2, garage to 192.168.1.3. Their saved entries already point there."),
+        )
+    }
+
+    @Test
     fun `language codes round-trip`() {
         assertEquals(AppLanguage.ARABIC, AppLanguage.fromCode("ar"))
         assertEquals(AppLanguage.ARABIC, AppLanguage.fromCode(" AR "))
